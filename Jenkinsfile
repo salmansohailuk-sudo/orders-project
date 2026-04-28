@@ -28,7 +28,8 @@ pipeline {
     stage('Checkout Code') {
       steps {
         // Pull latest code from GitHub repo
-        git 'https://github.com/salmansohailuk-sudo/orders-project.git'
+        git branch: 'main', url: 'https://github.com/salmansohailuk-sudo/orders-project.git'
+        
       }
     }
 
