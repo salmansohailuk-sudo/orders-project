@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Create Order</h2>
+<input id="cust" placeholder="Customer"><br>
+<input id="prod" placeholder="Product"><br>
+<input id="qty" placeholder="Qty"><br>
+<button onclick="create()">Create</button>
+
+<h2>Check Status</h2>
+<input id="oid" placeholder="Order ID">
+<button onclick="check()">Check</button>
+
+<script>
+const API = "REPLACE_API_URL";
+
+function create() {
+  fetch(API + "/orders", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      customer_id: cust.value,
+      product_id: prod.value,
+      quantity: qty.value
+    })
+  }).then(r=>r.json()).then(alert);
+}
+
+function check() {
+  fetch(API + "/orders/" + oid.value)
+  .then(r=>r.json()).then(alert);
+}
+</script>
+
+</body>
+</html>
