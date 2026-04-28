@@ -1,0 +1,61 @@
+# =========================
+# Terraform
+# =========================
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Sensitive variables
+*.tfvars
+*.tfvars.json
+
+# =========================
+# Lambda build artifacts
+# =========================
+*.zip
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# =========================
+# OS / Editor junk
+# =========================
+.DS_Store
+Thumbs.db
+*.log
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# =========================
+# Node (if frontend grows later)
+# =========================
+node_modules/
+
+# =========================
+# Docker
+# =========================
+*.tar
+
+# =========================
+# Jenkins
+# =========================
+.jenkins/
+
+# =========================
+# Environment / secrets
+# =========================
+.env
+.env.*
