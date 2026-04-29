@@ -10,7 +10,7 @@ pipeline {
     stage('Checkout Code') {
       steps {
         // Pull latest code from GitHub repo
-        git branch: 'main', url: 'https://github.com/UmmeHani-git/orders-project.git'
+        git branch: 'main', url: 'https://github.com/salmansohailuk-sudo/orders-project.git'
         
       }
     }
