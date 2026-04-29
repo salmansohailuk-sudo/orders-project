@@ -7,9 +7,15 @@ resource "aws_sqs_queue" "orders" {
   name = "orders-queue"
 }
 
-# SNS
+# ================= SNS =================
 resource "aws_sns_topic" "orders" {
   name = "orders-topic"
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.orders.arn
+  protocol  = "email"
+  endpoint  = "uhani2683@gmail.com"
 }
 
 # DynamoDB
@@ -79,7 +85,7 @@ resource "aws_lambda_function" "producer" {
 
   environment {
     variables = {
-      QUEUE_URL = aws_sqs_queue.orders.id
+      QUEUE_URL = aws_sqs_queue.orders.url
     }
   }
 }
@@ -116,6 +122,12 @@ resource "aws_lambda_event_source_mapping" "trigger" {
 resource "aws_apigatewayv2_api" "api" {
   name          = "orders-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = ["*"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
+    allow_headers = ["*"]
+  }
 }
 
 # Producer route

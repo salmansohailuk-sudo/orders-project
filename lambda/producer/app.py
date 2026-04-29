@@ -8,6 +8,7 @@ dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('orders-dev')
 
 def handler(event, context):
+
     body = json.loads(event['body'])
 
     order_id = str(uuid.uuid4())
@@ -29,6 +30,14 @@ def handler(event, context):
 
     return {
         "statusCode": 200,
+
+        # ✅ FIX: CORS HEADERS (VERY IMPORTANT)
+        "headers": {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "*"
+        },
+
         "body": json.dumps({
             "order_id": order_id,
             "status": "PENDING"

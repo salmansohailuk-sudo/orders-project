@@ -1,49 +1,23 @@
 pipeline {
   agent any
 
-  /**************************************
-   * GLOBAL ENV VARIABLES
-   **************************************/
   environment {
     REGION = "us-east-1"
   }
 
-  /**************************************
-   * OPTIONAL PARAMETER (IMPORTANT)
-   * Allows you to control Terraform run
-   **************************************/
-  parameters {
-    booleanParam(
-      name: 'RUN_TERRAFORM',
-      defaultValue: false,
-      description: 'Run Terraform Apply (ONLY when infra changes)'
-    )
-  }
-
   stages {
 
-    /**************************************
-     * STAGE 1: CHECKOUT CODE FROM GITHUB
-     **************************************/
     stage('Checkout Code') {
       steps {
         // Pull latest code from GitHub repo
-        git branch: 'main', url: 'https://github.com/salmansohailuk-sudo/orders-project.git'
+        git branch: 'main', url: 'https://github.com/UmmeHani-git/orders-project.git'
         
       }
     }
 
-    /**************************************
-     * STAGE 2: GENERATE VERSION TAG
-     **************************************/
-    stage('Set Version') {
+    stage('Version') {
       steps {
         script {
-          /*
-          This script generates a version like:
-          build-1, build-2, etc.
-          Used for tagging Docker images
-          */
           env.VERSION = sh(
             script: "bash scripts/version.sh",
             returnStdout: true
@@ -52,133 +26,75 @@ pipeline {
       }
     }
 
-    /**************************************
-     * STAGE 3: ZIP LAMBDA FUNCTIONS
-     **************************************/
+    // ✅ STEP 1: ZIP LAMBDAS
     stage('Zip Lambdas') {
       steps {
         sh '''
-        echo "Creating Lambda ZIP files..."
-
         chmod +x scripts/zip.sh
         ./scripts/zip.sh
-
-        echo "ZIP files ready:"
-        ls -lh *.zip
         '''
       }
     }
 
-    /**************************************
-     * STAGE 4: TERRAFORM (OPTIONAL)
-     **************************************/
-    stage('Terraform Apply') {
-      when {
-        expression { return params.RUN_TERRAFORM == true }
-      }
+    // ✅ STEP 2: Terraform (SAFE MODE)
+    stage('Terraform Plan Only') {
       steps {
         sh '''
-        echo "Running Terraform..."
-
         cd terraform
-
         terraform init
-        terraform apply -auto-approve
-
-        echo "Terraform complete"
+        terraform plan
         '''
       }
     }
 
-    /**************************************
-     * STAGE 5: UPDATE LAMBDA CODE
-     **************************************/
-    stage('Deploy Lambdas') {
+    // ✅ STEP 3: UPDATE LAMBDAS (AUTO)
+    stage('Update Lambdas') {
       steps {
         sh '''
-        echo "Updating Lambda functions..."
-
-        aws lambda update-function-code \
-          --function-name orders-producer \
-          --zip-file fileb://producer.zip
-
-        aws lambda update-function-code \
-          --function-name orders-consumer \
-          --zip-file fileb://consumer.zip
-
-        aws lambda update-function-code \
-          --function-name orders-status \
-          --zip-file fileb://status.zip
-
-        echo "Lambda deployment complete"
+        aws lambda update-function-code --function-name orders-producer --zip-file fileb://producer.zip
+        aws lambda update-function-code --function-name orders-consumer --zip-file fileb://consumer.zip
+        aws lambda update-function-code --function-name orders-status --zip-file fileb://status.zip
         '''
       }
     }
 
-    /**************************************
-     * STAGE 6: BUILD & PUSH FRONTEND TO ECR
-     **************************************/
+    // ✅ STEP 4: BUILD + PUSH DOCKER
     stage('Build & Push Frontend') {
       steps {
         sh '''
-        echo "Building and pushing frontend..."
-
         ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+
         ECR="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/orders-frontend"
 
-        echo "Logging into ECR..."
         aws ecr get-login-password --region $REGION \
         | docker login --username AWS --password-stdin $ECR
 
-        echo "Building Docker image..."
         docker build -t orders-frontend ./frontend
 
-        echo "Tagging images..."
         docker tag orders-frontend:latest $ECR:latest
         docker tag orders-frontend:latest $ECR:$VERSION
 
-        echo "Pushing images..."
         docker push $ECR:latest
         docker push $ECR:$VERSION
-
-        echo "Frontend pushed to ECR"
         '''
       }
     }
 
-    /**************************************
-     * STAGE 7: RUN FRONTEND CONTAINER
-     **************************************/
-    stage('Deploy Frontend (EC2)') {
+    // ✅ STEP 5: AUTO STOP OLD + RUN NEW (FIXED)
+    stage('Run Frontend') {
       steps {
         sh '''
-        echo "Deploying frontend container..."
+        echo "Stopping old container if exists..."
 
-        # Stop old container if exists
-        docker stop frontend || true
+        docker ps -q --filter "name=frontend" | grep -q . && docker stop frontend || true
+        docker ps -aq --filter "name=frontend" | grep -q . && docker rm frontend || true
 
-        # Remove old container
-        docker rm frontend || true
+        echo "Starting new container..."
 
-        # Run new container
         docker run -d -p 80:80 --name frontend orders-frontend
-
-        echo "Frontend running on port 80"
         '''
       }
     }
 
   }
-
-  /**************************************
-   * POST BUILD ACTIONS
-   **************************************/
-  post {
-    success {
-      echo "✅ Pipeline completed successfully!"
-    }
-    failure {
-      echo "❌ Pipeline failed! Check logs."
-    }
-  }
-}
+} 
