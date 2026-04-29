@@ -15,7 +15,7 @@ resource "aws_sns_topic" "orders" {
 resource "aws_sns_topic_subscription" "email" {
   topic_arn = aws_sns_topic.orders.arn
   protocol  = "email"
-  endpoint  = "uhani2683@gmail.com"
+  endpoint  = "salmansohailuk@gmail.com"
 }
 
 # DynamoDB
